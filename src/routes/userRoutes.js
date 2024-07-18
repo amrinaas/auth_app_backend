@@ -11,5 +11,6 @@ router.post(
   validate,
   userController.register
 );
+router.get('/verify/:token', userController.verifyEmail);
 
 export default router;
