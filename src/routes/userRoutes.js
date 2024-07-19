@@ -1,6 +1,6 @@
 import express from 'express';
 import { userValidationRules } from '../middlewares/validator.js';
-import { validate } from '../middlewares/authMiddleware.js';
+import { validate, authenticate } from '../middlewares/authMiddleware.js';
 import userController from '../controllers/userController.js';
 
 const router = express.Router();
@@ -12,5 +12,9 @@ router.post(
   userController.register
 );
 router.get('/verify/:token', userController.verifyEmail);
+router.get('/get-users', userController.getAllUsers);
+router.post('/login', userController.login);
+router.get('/refresh-token', userController.refreshToken);
+router.get('/:id', authenticate, userController.getUserById);
 
 export default router;

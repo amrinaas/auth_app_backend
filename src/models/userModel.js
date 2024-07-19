@@ -1,7 +1,12 @@
 import dbPool from '../config/database.js';
+import bcrypt from 'bcrypt';
 
 const getConnection = async () => {
   return await dbPool.getConnection();
+};
+
+const getAllUser = async () => {
+  return dbPool.query('SELECT * from users');
 };
 
 const createUser = async (
@@ -61,10 +66,61 @@ const updateUserByToken = async (token, updates) => {
   );
 };
 
+const findByEmail = async (email) => {
+  try {
+    const connection = await dbPool.getConnection();
+
+    const [results] = await connection.query(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+    connection.release();
+
+    return results[0];
+  } catch (err) {
+    console.error('Error in findByEmail:', err);
+    throw err;
+  }
+};
+
+const comparePassword = async (password, hash) => {
+  try {
+    let isMatch = await bcrypt.compare(password, hash);
+
+    return isMatch;
+  } catch (error) {
+    console.error('Error in comparePassword:', err);
+    throw err;
+  }
+};
+
+const findById = async (id) => {
+  let connection;
+  try {
+    connection = await dbPool.getConnection();
+
+    const [results] = await connection.query(
+      'SELECT * FROM users WHERE id = ?',
+      [id]
+    );
+
+    return results[0];
+  } catch (err) {
+    console.error('Error in findById:', err);
+    throw err;
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
 export default {
   getConnection,
   createUser,
   checkEmailExist,
   findUserByToken,
   updateUserByToken,
+  getAllUser,
+  findByEmail,
+  comparePassword,
+  findById,
 };

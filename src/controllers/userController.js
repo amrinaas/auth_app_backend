@@ -3,6 +3,8 @@ import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import userModel from '../models/userModel.js';
 import { promisify } from 'util';
+import { generateToken, sendRefreshToken } from '../utils/tokenUtils.js';
+import jwt from 'jsonwebtoken';
 
 const register = async (req, res) => {
   const connection = await userModel.getConnection();
@@ -103,4 +105,92 @@ const verifyEmail = async (req, res) => {
   }
 };
 
-export default { register, verifyEmail };
+const login = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await userModel.findByEmail(email);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const isMatch = await userModel.comparePassword(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credential' });
+    }
+
+    // Generate tokens
+    const { accessToken, refreshToken } = generateToken(user);
+
+    // Send refresh token as a cookie
+    sendRefreshToken(res, refreshToken);
+
+    res.status(200).json({ accessToken, message: 'Login successful' });
+  } catch (error) {
+    console.error('Error in login:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const refreshToken = async (req, res) => {
+  const token = req.cookies.refreshToken;
+  if (!token) {
+    return res.status(403).json({ message: 'Refresh token not provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    const user = await userModel.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const { accessToken, refreshToken: newRefreshToken } = generateToken(user);
+    sendRefreshToken(res, newRefreshToken);
+
+    res.status(200).json({ accessToken });
+  } catch (error) {
+    console.error('Error in refreshToken:', error);
+    res.status(403).json({ message: 'Invalid refresh token' });
+  }
+};
+
+const getUserById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const user = await userModel.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.status(200).json({
+      message: 'Success get user',
+      data: { id: user.id, email: user.email, username: user.username },
+    });
+  } catch (error) {
+    console.error('Error in getUserById:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const getAllUsers = async (req, res) => {
+  try {
+    const [user] = await userModel.getAllUser();
+    res.status(201).json({
+      data: user,
+      message: 'Successfully get all user',
+    });
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export default {
+  register,
+  verifyEmail,
+  getAllUsers,
+  getUserById,
+  login,
+  refreshToken,
+};
