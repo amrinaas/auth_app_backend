@@ -2,7 +2,8 @@ import { validationResult } from 'express-validator';
 import jwt from 'jsonwebtoken';
 
 export const authenticate = (req, res, next) => {
-  const token = req.header('Authorization');
+  const header = req.header('Authorization');
+  const token = header && header.split(' ')[1];
 
   if (!token) return res.status(401).json({ error: 'Unathorized' });
 
@@ -11,7 +12,8 @@ export const authenticate = (req, res, next) => {
     req.userId = decoded.userId;
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
+    console.error(error);
+    res.status(401).json({ error: error.message });
   }
 };
 
