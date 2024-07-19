@@ -157,16 +157,19 @@ const refreshToken = async (req, res) => {
 };
 
 const getUserById = async (req, res) => {
-  const { id } = req.params;
-
   try {
-    const user = await userModel.findById(id);
+    const user = await userModel.findById(req.userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
     res.status(200).json({
       message: 'Success get user',
-      data: { id: user.id, email: user.email, username: user.username },
+      data: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        is_email_verified: user.is_email_verified,
+      },
     });
   } catch (error) {
     console.error('Error in getUserById:', error);
