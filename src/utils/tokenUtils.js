@@ -19,7 +19,7 @@ const generateToken = (user) => {
 const sendRefreshToken = (res, token) => {
   res.cookie('refreshToken', token, {
     httpOnly: true,
-    path: '/user/:id',
+    path: '/user/refresh-token',
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
   });

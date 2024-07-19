@@ -186,6 +186,15 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+const logout = (req, res) => {
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    path: '/user/refresh-token',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+  res.status(200).json({ message: 'Logout successful' });
+};
 export default {
   register,
   verifyEmail,
@@ -193,4 +202,5 @@ export default {
   getUserById,
   login,
   refreshToken,
+  logout,
 };
