@@ -213,6 +213,30 @@ const updateUserName = async (req, res) => {
   }
 };
 
+const updatePassword = async (req, res) => {
+  const { id } = req.params;
+  const { oldPassword, newPassword, reEnterNewPassword } = req.body;
+
+  if (newPassword !== reEnterNewPassword)
+    return res.status(400).json({ message: "New password doesn't match" });
+
+  try {
+    const user = await userModel.findById(id);
+
+    if (!user) return res.status(400).json({ message: 'User not found' });
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+
+    if (!isMatch)
+      return res.status(400).json({ message: 'Old password is incorrect' });
+
+    await userModel.updatePassword(id, newPassword);
+    res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error update password', error);
+  }
+};
+
 export default {
   register,
   verifyEmail,
@@ -222,4 +246,5 @@ export default {
   refreshToken,
   logout,
   updateUserName,
+  updatePassword,
 };

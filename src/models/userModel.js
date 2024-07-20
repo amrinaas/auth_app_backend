@@ -61,7 +61,7 @@ const updateUserByToken = async (token, updates) => {
   const { is_email_verified, verification_token } = updates;
 
   await dbPool.query(
-    'UPDATE users SET is_email_verified = ?, verification_token =? WHERE verification_token = ?',
+    'UPDATE users SET is_email_verified = ?, verification_token = ? WHERE verification_token = ?',
     [is_email_verified, verification_token, token]
   );
 };
@@ -130,6 +130,24 @@ const updateUserName = async (name, id) => {
   }
 };
 
+const updatePassword = async (id, newPassword) => {
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  let connection;
+  try {
+    connection = await dbPool.getConnection();
+
+    await connection.query('UPDATE users SET password = ? WHERE id = ?', [
+      hashedPassword,
+      id,
+    ]);
+  } catch (err) {
+    console.error('Error in update password:', err);
+    throw err;
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
 export default {
   getConnection,
   createUser,
@@ -141,4 +159,5 @@ export default {
   comparePassword,
   findById,
   updateUserName,
+  updatePassword,
 };
