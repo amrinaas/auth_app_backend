@@ -13,7 +13,11 @@ const register = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    const { username, email, password } = req.body;
+    const { username, email, password, reEnterPassword } = req.body;
+
+    if (password !== reEnterPassword)
+      return res.status(400).json({ message: "Password doesn't match" });
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const token = crypto.randomBytes(32).toString('hex');
     const is_email_verified = false;
