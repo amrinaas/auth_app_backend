@@ -8,11 +8,11 @@ export const authenticate = (req, res, next) => {
   if (!token) return res.status(401).json({ error: 'Unathorized' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
     req.userId = decoded.id;
     next();
   } catch (error) {
-    console.error(error);
+    console.error('Error Authenticate', error);
     res.status(401).json({ error: error.message });
   }
 };
