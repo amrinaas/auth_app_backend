@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 const generateToken = (user) => {
   const accessToken = jwt.sign(
     { id: user.id, email: user.email },
-    process.env.JWT_SECRET,
+    process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: '1h' }
   );
 
@@ -19,7 +19,7 @@ const generateToken = (user) => {
 const sendRefreshToken = (res, token) => {
   res.cookie('refreshToken', token, {
     httpOnly: true,
-    path: '/user/refresh-token',
+    path: '/',
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
   });
