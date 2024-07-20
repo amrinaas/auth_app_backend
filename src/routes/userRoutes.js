@@ -11,11 +11,12 @@ router.post(
   validate,
   userController.register
 );
+router.get('/', userController.getAllUsers);
 router.get('/verify/:token', userController.verifyEmail);
-router.get('/get-users', userController.getAllUsers);
-router.post('/login', userController.login);
 router.get('/refresh-token', userController.refreshToken);
+router.post('/login', userController.login);
 router.delete('/logout', userController.logout);
+router.put('/', userController.updateUserName);
 router.get('/details', authenticate, userController.getUserById);
 
 export default router;

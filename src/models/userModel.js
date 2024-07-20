@@ -113,6 +113,23 @@ const findById = async (id) => {
   }
 };
 
+const updateUserName = async (name, id) => {
+  let connection;
+  try {
+    connection = await dbPool.getConnection();
+
+    await connection.query('UPDATE users SET username = ? WHERE id = ?', [
+      name,
+      id,
+    ]);
+  } catch (err) {
+    console.error('Error in findById:', err);
+    throw err;
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
 export default {
   getConnection,
   createUser,
@@ -123,4 +140,5 @@ export default {
   findByEmail,
   comparePassword,
   findById,
+  updateUserName,
 };

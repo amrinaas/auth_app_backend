@@ -13,11 +13,12 @@ const register = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    const { username, email, password, sign_up_source, sign_up_timestamps } =
-      req.body;
+    const { username, email, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
     const token = crypto.randomBytes(32).toString('hex');
     const is_email_verified = false;
+    const sign_up_source = 'Manual';
+    const sign_up_timestamps = new Date();
 
     await userModel.createUser(
       connection,
@@ -96,9 +97,7 @@ const verifyEmail = async (req, res) => {
       verification_token: null,
     });
 
-    res
-      .status(200)
-      .json({ message: 'Email verified successfully. You can log in now.' });
+    res.redirect('http://localhost:3000/dashboard');
   } catch (error) {
     console.error('error', error);
     res.status(500).json({ message: 'Error verifying email.' });
@@ -198,6 +197,22 @@ const logout = (req, res) => {
   });
   res.status(200).json({ message: 'Logout successful' });
 };
+
+const updateUserName = async (req, res) => {
+  const { username, id } = req.body;
+
+  if (!username || !id) {
+    return res.status(400).json({ message: 'ID and username is required' });
+  }
+
+  try {
+    await userModel.updateUserName(username, id);
+    res.status(200).json({ message: 'Update name successful' });
+  } catch (error) {
+    console.error('Error update username', error);
+  }
+};
+
 export default {
   register,
   verifyEmail,
@@ -206,4 +221,5 @@ export default {
   login,
   refreshToken,
   logout,
+  updateUserName,
 };
