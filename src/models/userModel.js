@@ -136,6 +136,20 @@ const updatePassword = async (id, newPassword) => {
   }
 };
 
+const createUserActivity = async ({ userId, action, timestamps }) => {
+  try {
+    await connection.query(
+      'INSERT INTO user_activities (userId, action, timestamps) VALUES (?, ?, ?)',
+      [userId, action, timestamps]
+    );
+  } catch (error) {
+    console.log('Error at createUserActivity', error);
+    throw new Error(error);
+  } finally {
+    connection.release();
+  }
+};
+
 // const findOrCreateUser = async (profile) => {
 //   try {
 //     console.log('profile', profile);
@@ -222,6 +236,7 @@ export default {
   findById,
   updateUserName,
   updatePassword,
+  createUserActivity,
   // findOrCreateUser,
   // getTotalUsers,
   // getActiveSessionsToday,

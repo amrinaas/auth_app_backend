@@ -14,7 +14,7 @@ router.post(
 router.get('/verify/:token', userController.verifyEmail);
 router.get('/refresh-token', userController.refreshToken);
 router.post('/login', userController.login);
-router.delete('/logout', userController.logout);
+router.delete('/logout/:id', userController.logout);
 router.put('/', userController.updateUserName);
 router.put('/:id/password', userController.updatePassword);
 router.get('/details', authenticate, userController.getUserById);

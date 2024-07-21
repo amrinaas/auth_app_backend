@@ -110,6 +110,13 @@ const login = async (req, res) => {
     // Send refresh token as a cookie
     sendRefreshToken(res, refreshToken);
 
+    // Storing user activities
+    await userModel.createUserActivity({
+      userId: user.id,
+      action: 'login',
+      timestamps: new Date(),
+    });
+
     res.status(200).json({ accessToken, message: 'Login successful' });
   } catch (error) {
     console.error('Error in login:', error);
@@ -161,14 +168,34 @@ const getUserById = async (req, res) => {
   }
 };
 
-const logout = (req, res) => {
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    path: '/user/refresh-token',
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-  });
-  res.status(200).json({ message: 'Logout successful' });
+const logout = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const user = await userModel.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    await userModel.createUserActivity({
+      userId: id,
+      action: 'logout',
+      timestamps: new Date(),
+    });
+
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      path: '/',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'None',
+    });
+
+    res.status(200).json({ message: 'Logout successful' });
+  } catch (error) {
+    console.log('error logout', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 };
 
 const updateUserName = async (req, res) => {
