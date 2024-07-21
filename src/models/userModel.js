@@ -65,6 +65,15 @@ const updateUserByToken = async (updates) => {
   );
 };
 
+const updateToken = async (updates) => {
+  const { email, token } = updates;
+
+  await dbPool.query('UPDATE users SET token = ? WHERE email = ?', [
+    token,
+    email,
+  ]);
+};
+
 const findByEmail = async (email) => {
   try {
     const [results] = await connection.query(
@@ -237,6 +246,7 @@ export default {
   updateUserName,
   updatePassword,
   createUserActivity,
+  updateToken,
   // findOrCreateUser,
   // getTotalUsers,
   // getActiveSessionsToday,

@@ -17,6 +17,10 @@ router.post('/login', userController.login);
 router.delete('/logout/:id', userController.logout);
 router.put('/', userController.updateUserName);
 router.put('/:id/password', userController.updatePassword);
+router.get(
+  '/resend-email-verification/:id',
+  userController.resendVerificationEmail
+);
 router.get('/details', authenticate, userController.getUserById);
 
 // router.get('/', userController.getUsersDashboard);

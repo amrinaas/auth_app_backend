@@ -70,14 +70,47 @@ const sendVerificationEmail = async (email, token) => {
   }
 };
 
-const verifyEmail = async (req, res) => {
-  const { token } = req.params;
+const resendVerificationEmail = async (req, res) => {
+  const { id } = req.params;
 
   try {
-    const user = userModel.findUserByToken({ token: token });
+    const token = crypto.randomBytes(32).toString('hex');
+    const user = await userModel.findById(id);
+
+    if (!user) return res.status(400).json({ message: 'User not found' });
+
+    const output = `
+    <h1>Hello,<br>Click the link below to verify your email.</h1>
+    <button><a href="${process.env.EMAIL_HOST}/user/verify/${token}">${process.env.EMAIL_HOST}/user/verify/${token}</a></button>
+  `;
+
+    const mailOptions = {
+      from: '"Nodemailer contact" <admin@infiniteinvites.com>',
+      to: user.email,
+      subject: 'Please verify your email',
+      text: `Click the link to verify your account:`,
+      html: output,
+    };
+    await userModel.updateToken({ email: user.email, token: token });
+    await sendMail(mailOptions);
+    res.status(200).json({ message: 'Resend email successful' });
+
+    console.log('Resend Email has been sent to: ', user.email);
+    return 'Verification email sent!';
+  } catch (error) {
+    console.error('Error sending email:', error);
+    res.status(500).json({ error: 'Failed to send verification email' });
+  }
+};
+
+const verifyEmail = async (req, res) => {
+  const { token } = req.params;
+  try {
+    const user = await userModel.findUserByToken(token);
 
     if (!user) {
-      res.status(404).json({ message: 'Invalid verification token.' });
+      res.redirect('http://localhost:3000/invalid-token');
+      return;
     }
 
     await userModel.updateUserByToken({ verified: true, token: token });
@@ -302,6 +335,7 @@ export default {
   logout,
   updateUserName,
   updatePassword,
+  resendVerificationEmail,
   // googleAuth,
   // googleAuthCallback,
   // facebookAuth,
