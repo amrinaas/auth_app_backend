@@ -22,10 +22,10 @@ router.get(
   userController.resendVerificationEmail
 );
 router.get('/details', authenticate, userController.getUserById);
+router.get('/total-users', userController.getTotalUsers);
 
 // router.get('/', userController.getUsersDashboard);
 
-// router.get('/total-users', userController.getTotalUsers);
 // router.get('/active-sessions-today', userController.getActiveSessionsToday);
 // router.get('/average-active-sessions', userController.getAverageActiveSessions);
 

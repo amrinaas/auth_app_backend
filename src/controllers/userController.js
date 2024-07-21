@@ -270,6 +270,17 @@ const updatePassword = async (req, res) => {
   }
 };
 
+const getTotalUsers = async (req, res) => {
+  try {
+    const totalUsers = await userModel.getTotalUsers();
+    res
+      .status(200)
+      .json({ totalUsers: totalUsers, message: 'Get all users successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // const googleAuth = passport.authenticate('google', {
 //   scope: ['profile', 'email'],
 // });
@@ -288,15 +299,6 @@ const updatePassword = async (req, res) => {
 
 // const authSuccess = (req, res) => {
 //   res.redirect(`${process.env.WEBSITE}/dashboard`);
-// };
-
-// const getTotalUsers = async (req, res) => {
-//   try {
-//     const totalUsers = await userModel.getTotalUsers();
-//     res.json({ totalUsers });
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
 // };
 
 // const getActiveSessionsToday = async (req, res) => {
@@ -336,12 +338,12 @@ export default {
   updateUserName,
   updatePassword,
   resendVerificationEmail,
+  getTotalUsers,
   // googleAuth,
   // googleAuthCallback,
   // facebookAuth,
   // facebookAuthCallback,
   // authSuccess,
-  // getTotalUsers,
   // getActiveSessionsToday,
   // getAverageActiveSessions,
   // getUsersDashboard,

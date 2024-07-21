@@ -159,6 +159,13 @@ const createUserActivity = async ({ userId, action, timestamps }) => {
   }
 };
 
+const getTotalUsers = async () => {
+  const [rows] = await connection.query(
+    'SELECT COUNT(*) AS totalUsers FROM users'
+  );
+  return rows[0].totalUsers;
+};
+
 // const findOrCreateUser = async (profile) => {
 //   try {
 //     console.log('profile', profile);
@@ -188,11 +195,6 @@ const createUserActivity = async ({ userId, action, timestamps }) => {
 //   } finally {
 //     if (connection) connection.release();
 //   }
-// };
-
-// const getTotalUsers = async () => {
-//   const [rows] = await pool.query('SELECT COUNT(*) AS totalUsers FROM users');
-//   return rows[0].totalUsers;
 // };
 
 // const getActiveSessionsToday = async () => {
@@ -247,8 +249,8 @@ export default {
   updatePassword,
   createUserActivity,
   updateToken,
+  getTotalUsers,
   // findOrCreateUser,
-  // getTotalUsers,
   // getActiveSessionsToday,
   // getAverageActiveSessions,
   // getAllUsers,
