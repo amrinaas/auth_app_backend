@@ -1,36 +1,35 @@
 import dbPool from '../config/database.js';
 import bcrypt from 'bcrypt';
 
-const getConnection = async () => {
-  return await dbPool.getConnection();
-};
-
-const getAllUser = async () => {
-  return dbPool.query('SELECT * from users');
-};
+const connection = await dbPool.getConnection();
 
 const createUser = async (
-  connection,
   username,
   email,
   password,
-  is_email_verified,
-  sign_up_source,
-  sign_up_timestamps,
-  token
+  token,
+  verified,
+  createdAt
 ) => {
-  await connection.query(
-    'INSERT INTO users (username, email, password, is_email_verified, sign_up_source, sign_up_timestamps, verification_token) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [
-      username,
-      email,
-      password,
-      is_email_verified,
-      sign_up_source,
-      sign_up_timestamps,
-      token,
-    ]
-  );
+  let shouldCommit = false;
+  try {
+    await connection.query(
+      'INSERT INTO users (username, email, password, token, verified, createdAt) VALUES (?, ?, ?, ?, ?, ?)',
+      [username, email, password, token, verified, createdAt]
+    );
+
+    await connection.commit();
+    shouldCommit = true;
+    console.log('shouldCommit', shouldCommit);
+  } catch (error) {
+    if (!shouldCommit) {
+      await connection.rollback();
+    }
+    console.error('Transaction failed, rolled back.', error);
+    throw new Error(error);
+  } finally {
+    connection.release();
+  }
 };
 
 const checkEmailExist = async (email) => {
@@ -42,34 +41,32 @@ const checkEmailExist = async (email) => {
 };
 
 const findUserByToken = async (token) => {
-  const connection = await dbPool.getConnection();
   try {
     const [rows] = await connection.query(
-      'SELECT * FROM users WHERE verification_token = ?',
+      'SELECT * FROM users WHERE token = ?',
       [token]
     );
 
     return rows[0];
   } catch (error) {
-    throw error;
+    console.error('Error at findUserByToken', error);
+    throw new Error(error);
   } finally {
     connection.release();
   }
 };
 
-const updateUserByToken = async (token, updates) => {
-  const { is_email_verified, verification_token } = updates;
+const updateUserByToken = async (updates) => {
+  const { verified, token } = updates;
 
   await dbPool.query(
-    'UPDATE users SET is_email_verified = ?, verification_token = ? WHERE verification_token = ?',
-    [is_email_verified, verification_token, token]
+    'UPDATE users SET verified = ?, token = ? WHERE token = ?',
+    [verified, null, token]
   );
 };
 
 const findByEmail = async (email) => {
   try {
-    const connection = await dbPool.getConnection();
-
     const [results] = await connection.query(
       'SELECT * FROM users WHERE email = ?',
       [email]
@@ -79,7 +76,7 @@ const findByEmail = async (email) => {
     return results[0];
   } catch (err) {
     console.error('Error in findByEmail:', err);
-    throw err;
+    throw new Error(err);
   }
 };
 
@@ -90,15 +87,12 @@ const comparePassword = async (password, hash) => {
     return isMatch;
   } catch (error) {
     console.error('Error in comparePassword:', err);
-    throw err;
+    throw new Error(err);
   }
 };
 
 const findById = async (id) => {
-  let connection;
   try {
-    connection = await dbPool.getConnection();
-
     const [results] = await connection.query(
       'SELECT * FROM users WHERE id = ?',
       [id]
@@ -107,57 +101,130 @@ const findById = async (id) => {
     return results[0];
   } catch (err) {
     console.error('Error in findById:', err);
-    throw err;
+    throw new Error(err);
   } finally {
-    if (connection) connection.release();
+    connection.release();
   }
 };
 
 const updateUserName = async (name, id) => {
-  let connection;
   try {
-    connection = await dbPool.getConnection();
-
     await connection.query('UPDATE users SET username = ? WHERE id = ?', [
       name,
       id,
     ]);
   } catch (err) {
     console.error('Error in findById:', err);
-    throw err;
+    throw new Error(err);
   } finally {
-    if (connection) connection.release();
+    connection.release();
   }
 };
 
 const updatePassword = async (id, newPassword) => {
   const hashedPassword = await bcrypt.hash(newPassword, 10);
-  let connection;
   try {
-    connection = await dbPool.getConnection();
-
     await connection.query('UPDATE users SET password = ? WHERE id = ?', [
       hashedPassword,
       id,
     ]);
   } catch (err) {
     console.error('Error in update password:', err);
-    throw err;
+    throw new Error(err);
   } finally {
-    if (connection) connection.release();
+    connection.release();
   }
 };
 
+// const findOrCreateUser = async (profile) => {
+//   try {
+//     console.log('profile', profile);
+//     const [rows] = await connection.query(
+//       'SELECT * FROM users WHERE oauth_id = ? AND sign_up_source = ?',
+//       [profile.id, profile.provider]
+//     );
+//     if (rows.length > 0) {
+//       return rows[0];
+//     } else {
+//       await pool.query(
+//         'INSERT INTO users (oauth_id, sign_up_source, username, email, sign_up_timestamps, is_email_verified) VALUES (?, ?, ?, ?, ?, ?)',
+//         [
+//           profile.id,
+//           profile.provider,
+//           profile.displayName,
+//           profile.emails[0].value,
+//           profile.sign_up_timestamps,
+//           profile.is_email_verified,
+//         ]
+//       );
+//       return { ...profile };
+//     }
+//   } catch (err) {
+//     console.error('Error in update password:', err);
+//     throw err;
+//   } finally {
+//     if (connection) connection.release();
+//   }
+// };
+
+// const getTotalUsers = async () => {
+//   const [rows] = await pool.query('SELECT COUNT(*) AS totalUsers FROM users');
+//   return rows[0].totalUsers;
+// };
+
+// const getActiveSessionsToday = async () => {
+//   const [rows] = await connection.query(`
+//     SELECT COUNT(DISTINCT id) AS activeSessionsToday
+//     FROM sessions
+//     WHERE DATE(last_activity) = CURDATE()
+//   `);
+//   return rows[0].activeSessionsToday;
+// };
+
+// const getAverageActiveSessions = async () => {
+//   const [rows] = await pool.query(`
+//     SELECT AVG(dailyActiveUsers) AS averageActiveSessions
+//     FROM (
+//       SELECT COUNT(DISTINCT user_id) AS dailyActiveUsers
+//       FROM sessions
+//       WHERE last_activity >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+//       GROUP BY DATE(last_activity)
+//     ) AS dailyStats
+//   `);
+//   return rows[0].averageActiveSessions;
+// };
+
+// const getAllUsers = async () => {
+//   try {
+//     const [rows] = await dbPool.query(`
+//       SELECT
+//         id,
+//         username,
+//         email,
+//         sign_up_timestamps AS signUpTimestamp,
+//         number_of_login AS loginCount,
+//         logout_timestamps AS lastLogoutTimestamp
+//       FROM users
+//     `);
+//     return rows;
+//   } catch (error) {
+//     throw new Error('Error fetching users: ' + error.message);
+//   }
+// };
+
 export default {
-  getConnection,
   createUser,
   checkEmailExist,
   findUserByToken,
   updateUserByToken,
-  getAllUser,
   findByEmail,
   comparePassword,
   findById,
   updateUserName,
   updatePassword,
+  // findOrCreateUser,
+  // getTotalUsers,
+  // getActiveSessionsToday,
+  // getAverageActiveSessions,
+  // getAllUsers,
 };

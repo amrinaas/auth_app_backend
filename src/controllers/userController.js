@@ -5,14 +5,10 @@ import userModel from '../models/userModel.js';
 import { promisify } from 'util';
 import { generateToken, sendRefreshToken } from '../utils/tokenUtils.js';
 import jwt from 'jsonwebtoken';
+import passport from 'passport';
 
 const register = async (req, res) => {
-  const connection = await userModel.getConnection();
-  let shouldCommit = false;
-
   try {
-    await connection.beginTransaction();
-
     const { username, email, password, reEnterPassword } = req.body;
 
     if (password !== reEnterPassword)
@@ -20,34 +16,22 @@ const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const token = crypto.randomBytes(32).toString('hex');
-    const is_email_verified = false;
-    const sign_up_source = 'Manual';
-    const sign_up_timestamps = new Date();
+    const verified = false;
+    const createdAt = new Date();
 
     await userModel.createUser(
-      connection,
       username,
       email,
       hashedPassword,
-      is_email_verified,
-      sign_up_source,
-      sign_up_timestamps,
-      token
+      token,
+      verified,
+      createdAt
     );
 
     await sendVerificationEmail(email, token);
-    await connection.commit();
-    shouldCommit = true;
-
     res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
-    if (!shouldCommit) {
-      await connection.rollback();
-    }
-    console.error('Transaction failed, rolled back.', error);
     res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    connection.release();
   }
 };
 
@@ -82,7 +66,7 @@ const sendVerificationEmail = async (email, token) => {
     return 'Verification email sent!';
   } catch (error) {
     console.error('Error sending email:', error);
-    throw new Error('Failed to send verification email');
+    res.status(500).json({ error: 'Failed to send verification email' });
   }
 };
 
@@ -90,16 +74,13 @@ const verifyEmail = async (req, res) => {
   const { token } = req.params;
 
   try {
-    const user = userModel.findUserByToken({ verification_token: token });
+    const user = userModel.findUserByToken({ token: token });
 
     if (!user) {
       res.status(404).json({ message: 'Invalid verification token.' });
     }
 
-    await userModel.updateUserByToken(token, {
-      is_email_verified: true,
-      verification_token: null,
-    });
+    await userModel.updateUserByToken({ verified: true, token: token });
 
     res.redirect('http://localhost:3000/dashboard');
   } catch (error) {
@@ -180,18 +161,6 @@ const getUserById = async (req, res) => {
   }
 };
 
-const getAllUsers = async (req, res) => {
-  try {
-    const [user] = await userModel.getAllUser();
-    res.status(201).json({
-      data: user,
-      message: 'Successfully get all user',
-    });
-  } catch (error) {
-    console.error(error);
-  }
-};
-
 const logout = (req, res) => {
   res.clearCookie('refreshToken', {
     httpOnly: true,
@@ -241,14 +210,78 @@ const updatePassword = async (req, res) => {
   }
 };
 
+// const googleAuth = passport.authenticate('google', {
+//   scope: ['profile', 'email'],
+// });
+
+// const googleAuthCallback = passport.authenticate('google', {
+//   failureRedirect: '/login',
+//   session: false,
+// });
+
+// const facebookAuth = passport.authenticate('facebook', { scope: ['email'] });
+
+// const facebookAuthCallback = passport.authenticate('facebook', {
+//   failureRedirect: `${process.env.WEBSITE}/login`,
+//   session: false,
+// });
+
+// const authSuccess = (req, res) => {
+//   res.redirect(`${process.env.WEBSITE}/dashboard`);
+// };
+
+// const getTotalUsers = async (req, res) => {
+//   try {
+//     const totalUsers = await userModel.getTotalUsers();
+//     res.json({ totalUsers });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// const getActiveSessionsToday = async (req, res) => {
+//   try {
+//     const activeSessionsToday = await userModel.getActiveSessionsToday();
+//     res.json({ activeSessionsToday });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// const getAverageActiveSessions = async (req, res) => {
+//   try {
+//     const averageActiveSessions = await userModel.getAverageActiveSessions();
+//     res.json({ averageActiveSessions });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// export const getUsersDashboard = async (req, res) => {
+//   try {
+//     const users = await userModel.getAllUsers();
+//     res.status(200).json({ data: users, message: 'Success get all users' });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 export default {
   register,
   verifyEmail,
-  getAllUsers,
   getUserById,
   login,
   refreshToken,
   logout,
   updateUserName,
   updatePassword,
+  // googleAuth,
+  // googleAuthCallback,
+  // facebookAuth,
+  // facebookAuthCallback,
+  // authSuccess,
+  // getTotalUsers,
+  // getActiveSessionsToday,
+  // getAverageActiveSessions,
+  // getUsersDashboard,
 };
