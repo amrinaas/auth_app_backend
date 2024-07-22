@@ -166,6 +166,28 @@ const getTotalUsers = async () => {
   return rows[0].totalUsers;
 };
 
+const getUsersDashboard = async () => {
+  try {
+    const [rows] = await dbPool.query(`
+      SELECT 
+          u.email,
+          u.username,
+          u.createdAt,
+          COUNT(CASE WHEN ua.action = 'login' THEN 1 END) AS login_count,
+          MAX(CASE WHEN ua.action = 'logout' THEN ua.timestamps END) AS last_logout
+      FROM 
+          users u
+      LEFT JOIN 
+          user_activities ua ON u.id = ua.userId
+      GROUP BY 
+          u.email, u.username, u.createdAt;
+    `);
+    return rows;
+  } catch (error) {
+    throw new Error('Error fetching users: ' + error.message);
+  }
+};
+
 // const findOrCreateUser = async (profile) => {
 //   try {
 //     console.log('profile', profile);
@@ -219,24 +241,6 @@ const getTotalUsers = async () => {
 //   return rows[0].averageActiveSessions;
 // };
 
-// const getAllUsers = async () => {
-//   try {
-//     const [rows] = await dbPool.query(`
-//       SELECT
-//         id,
-//         username,
-//         email,
-//         sign_up_timestamps AS signUpTimestamp,
-//         number_of_login AS loginCount,
-//         logout_timestamps AS lastLogoutTimestamp
-//       FROM users
-//     `);
-//     return rows;
-//   } catch (error) {
-//     throw new Error('Error fetching users: ' + error.message);
-//   }
-// };
-
 export default {
   createUser,
   checkEmailExist,
@@ -250,8 +254,8 @@ export default {
   createUserActivity,
   updateToken,
   getTotalUsers,
+  getUsersDashboard,
   // findOrCreateUser,
   // getActiveSessionsToday,
   // getAverageActiveSessions,
-  // getAllUsers,
 };

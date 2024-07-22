@@ -23,6 +23,7 @@ router.get(
 );
 router.get('/details', authenticate, userController.getUserById);
 router.get('/total-users', userController.getTotalUsers);
+router.get('/users-dashboard', userController.getUsersDashboard);
 
 // router.get('/', userController.getUsersDashboard);
 

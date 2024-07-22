@@ -115,7 +115,7 @@ const verifyEmail = async (req, res) => {
 
     await userModel.updateUserByToken({ verified: true, token: token });
 
-    res.redirect('http://localhost:3000/dashboard');
+    res.redirect('http://localhost:3000/');
   } catch (error) {
     console.error('error', error);
     res.status(500).json({ message: 'Error verifying email.' });
@@ -192,7 +192,7 @@ const getUserById = async (req, res) => {
         id: user.id,
         email: user.email,
         username: user.username,
-        is_email_verified: user.is_email_verified,
+        verified: user.verified,
       },
     });
   } catch (error) {
@@ -281,6 +281,15 @@ const getTotalUsers = async (req, res) => {
   }
 };
 
+export const getUsersDashboard = async (req, res) => {
+  try {
+    const users = await userModel.getUsersDashboard();
+    res.status(200).json({ data: users, message: 'Success get all users' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // const googleAuth = passport.authenticate('google', {
 //   scope: ['profile', 'email'],
 // });
@@ -319,15 +328,6 @@ const getTotalUsers = async (req, res) => {
 //   }
 // };
 
-// export const getUsersDashboard = async (req, res) => {
-//   try {
-//     const users = await userModel.getAllUsers();
-//     res.status(200).json({ data: users, message: 'Success get all users' });
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// };
-
 export default {
   register,
   verifyEmail,
@@ -339,6 +339,7 @@ export default {
   updatePassword,
   resendVerificationEmail,
   getTotalUsers,
+  getUsersDashboard,
   // googleAuth,
   // googleAuthCallback,
   // facebookAuth,
@@ -346,5 +347,4 @@ export default {
   // authSuccess,
   // getActiveSessionsToday,
   // getAverageActiveSessions,
-  // getUsersDashboard,
 };
