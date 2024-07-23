@@ -20,7 +20,6 @@ const createUser = async (
 
     await connection.commit();
     shouldCommit = true;
-    console.log('shouldCommit', shouldCommit);
   } catch (error) {
     if (!shouldCommit) {
       await connection.rollback();
@@ -188,36 +187,54 @@ const getUsersDashboard = async () => {
   }
 };
 
-// const findOrCreateUser = async (profile) => {
-//   try {
-//     console.log('profile', profile);
-//     const [rows] = await connection.query(
-//       'SELECT * FROM users WHERE oauth_id = ? AND sign_up_source = ?',
-//       [profile.id, profile.provider]
-//     );
-//     if (rows.length > 0) {
-//       return rows[0];
-//     } else {
-//       await pool.query(
-//         'INSERT INTO users (oauth_id, sign_up_source, username, email, sign_up_timestamps, is_email_verified) VALUES (?, ?, ?, ?, ?, ?)',
-//         [
-//           profile.id,
-//           profile.provider,
-//           profile.displayName,
-//           profile.emails[0].value,
-//           profile.sign_up_timestamps,
-//           profile.is_email_verified,
-//         ]
-//       );
-//       return { ...profile };
-//     }
-//   } catch (err) {
-//     console.error('Error in update password:', err);
-//     throw err;
-//   } finally {
-//     if (connection) connection.release();
-//   }
-// };
+const findOrCreateUser = async (profile) => {
+  try {
+    let shouldCommit = false;
+    const [rows] = await connection.query(
+      'SELECT * FROM users WHERE facebookId IS NOT NULL OR googleId IS NOT NULL',
+      [profile.facebookId, profile.googleId]
+    );
+
+    if (rows.length > 0) {
+      return rows[0];
+    } else {
+      if (profile.facebookId) {
+        await connection.query(
+          'INSERT INTO users (username, email, facebookId, verified, createdAt) VALUES (?, ?, ?, ?, ?)',
+          [
+            profile.displayName,
+            profile.emails[0].value,
+            profile.facebookId,
+            profile.verified,
+            profile.createdAt,
+          ]
+        );
+      }
+      if (profile.googleId) {
+        await connection.query(
+          'INSERT INTO users (username, email, googleId, verified, createdAt) VALUES (?, ?, ?, ?, ?)',
+          [
+            profile.displayName,
+            profile.emails[0].value,
+            profile.googleId,
+            profile.verified,
+            profile.createdAt,
+          ]
+        );
+      }
+      await connection.commit();
+      return { ...profile };
+    }
+  } catch (error) {
+    if (!shouldCommit) {
+      await connection.rollback();
+    }
+    console.error('Transaction failed, rolled back.', error);
+    throw new Error(error);
+  } finally {
+    if (connection) connection.release();
+  }
+};
 
 // const getActiveSessionsToday = async () => {
 //   const [rows] = await connection.query(`
@@ -255,7 +272,7 @@ export default {
   updateToken,
   getTotalUsers,
   getUsersDashboard,
-  // findOrCreateUser,
+  findOrCreateUser,
   // getActiveSessionsToday,
   // getAverageActiveSessions,
 };

@@ -25,22 +25,20 @@ router.get('/details', authenticate, userController.getUserById);
 router.get('/total-users', userController.getTotalUsers);
 router.get('/users-dashboard', userController.getUsersDashboard);
 
-// router.get('/', userController.getUsersDashboard);
+router.get('/auth/facebook', userController.facebookAuth);
+router.get(
+  '/auth/facebook/callback',
+  userController.facebookAuthCallback,
+  userController.authSuccess
+);
 
+// router.get('/', userController.getUsersDashboard);
 // router.get('/active-sessions-today', userController.getActiveSessionsToday);
 // router.get('/average-active-sessions', userController.getAverageActiveSessions);
-
 // router.get('/auth/google', userController.googleAuth);
 // router.get(
 //   '/auth/google/callback',
 //   userController.googleAuthCallback,
-//   userController.authSuccess
-// );
-
-// router.get('/auth/facebook', userController.facebookAuth);
-// router.get(
-//   '/auth/facebook/callback',
-//   userController.facebookAuthCallback,
 //   userController.authSuccess
 // );
 

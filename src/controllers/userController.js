@@ -290,6 +290,28 @@ export const getUsersDashboard = async (req, res) => {
   }
 };
 
+const facebookAuth = passport.authenticate('facebook', { scope: ['email'] });
+
+const facebookAuthCallback = passport.authenticate('facebook', {
+  failureRedirect: `${process.env.WEBSITE}/login`,
+  session: false,
+});
+
+const authSuccess = async (req, res) => {
+  // Generate tokens
+  const { accessToken, refreshToken } = generateToken(req.user);
+  // Send refresh token as a cookie
+  sendRefreshToken(res, refreshToken);
+  res.cookie('accessToken', accessToken);
+  // Storing user activities
+  await userModel.createUserActivity({
+    userId: req.user.id,
+    action: 'login',
+    timestamps: new Date(),
+  });
+  res.redirect(`${process.env.WEBSITE}/`);
+};
+
 // const googleAuth = passport.authenticate('google', {
 //   scope: ['profile', 'email'],
 // });
@@ -298,17 +320,6 @@ export const getUsersDashboard = async (req, res) => {
 //   failureRedirect: '/login',
 //   session: false,
 // });
-
-// const facebookAuth = passport.authenticate('facebook', { scope: ['email'] });
-
-// const facebookAuthCallback = passport.authenticate('facebook', {
-//   failureRedirect: `${process.env.WEBSITE}/login`,
-//   session: false,
-// });
-
-// const authSuccess = (req, res) => {
-//   res.redirect(`${process.env.WEBSITE}/dashboard`);
-// };
 
 // const getActiveSessionsToday = async (req, res) => {
 //   try {
@@ -340,11 +351,11 @@ export default {
   resendVerificationEmail,
   getTotalUsers,
   getUsersDashboard,
+  facebookAuth,
+  facebookAuthCallback,
+  authSuccess,
   // googleAuth,
   // googleAuthCallback,
-  // facebookAuth,
-  // facebookAuthCallback,
-  // authSuccess,
   // getActiveSessionsToday,
   // getAverageActiveSessions,
 };
