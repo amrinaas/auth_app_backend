@@ -312,14 +312,14 @@ const authSuccess = async (req, res) => {
   res.redirect(`${process.env.WEBSITE}/`);
 };
 
-// const googleAuth = passport.authenticate('google', {
-//   scope: ['profile', 'email'],
-// });
+const googleAuth = passport.authenticate('google', {
+  scope: ['profile', 'email'],
+});
 
-// const googleAuthCallback = passport.authenticate('google', {
-//   failureRedirect: '/login',
-//   session: false,
-// });
+const googleAuthCallback = passport.authenticate('google', {
+  failureRedirect: '/login',
+  session: false,
+});
 
 // const getActiveSessionsToday = async (req, res) => {
 //   try {
@@ -354,8 +354,8 @@ export default {
   facebookAuth,
   facebookAuthCallback,
   authSuccess,
-  // googleAuth,
-  // googleAuthCallback,
+  googleAuth,
+  googleAuthCallback,
   // getActiveSessionsToday,
   // getAverageActiveSessions,
 };

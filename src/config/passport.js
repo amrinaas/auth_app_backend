@@ -22,6 +22,7 @@ passport.use(
         });
         done(null, user);
       } catch (error) {
+        console.error('error on google passport', error);
         done(error, null);
       }
     }

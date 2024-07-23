@@ -31,15 +31,14 @@ router.get(
   userController.facebookAuthCallback,
   userController.authSuccess
 );
+router.get('/auth/google', userController.googleAuth);
+router.get(
+  '/auth/google/callback',
+  userController.googleAuthCallback,
+  userController.authSuccess
+);
 
-// router.get('/', userController.getUsersDashboard);
 // router.get('/active-sessions-today', userController.getActiveSessionsToday);
 // router.get('/average-active-sessions', userController.getAverageActiveSessions);
-// router.get('/auth/google', userController.googleAuth);
-// router.get(
-//   '/auth/google/callback',
-//   userController.googleAuthCallback,
-//   userController.authSuccess
-// );
 
 export default router;

@@ -188,10 +188,10 @@ const getUsersDashboard = async () => {
 };
 
 const findOrCreateUser = async (profile) => {
+  let shouldCommit = false;
   try {
-    let shouldCommit = false;
     const [rows] = await connection.query(
-      'SELECT * FROM users WHERE facebookId IS NOT NULL OR googleId IS NOT NULL',
+      'SELECT * FROM users WHERE (facebookId = ? AND googleId IS NULL) OR (facebookId IS NULL AND googleId = ?)',
       [profile.facebookId, profile.googleId]
     );
 
@@ -223,6 +223,7 @@ const findOrCreateUser = async (profile) => {
         );
       }
       await connection.commit();
+      shouldCommit = true;
       return { ...profile };
     }
   } catch (error) {
