@@ -190,41 +190,50 @@ const getUsersDashboard = async () => {
 const findOrCreateUser = async (profile) => {
   let shouldCommit = false;
   try {
-    const [rows] = await connection.query(
-      'SELECT * FROM users WHERE (facebookId = ? AND googleId IS NULL) OR (facebookId IS NULL AND googleId = ?)',
-      [profile.facebookId, profile.googleId]
+    const [emailExist] = await connection.query(
+      'SELECT * FROM users WHERE email = ?',
+      [profile.emails[0].value]
     );
 
-    if (rows.length > 0) {
-      return rows[0];
+    if (emailExist.length > 0) {
+      return emailExist[0];
     } else {
-      if (profile.facebookId) {
-        await connection.query(
-          'INSERT INTO users (username, email, facebookId, verified, createdAt) VALUES (?, ?, ?, ?, ?)',
-          [
-            profile.displayName,
-            profile.emails[0].value,
-            profile.facebookId,
-            profile.verified,
-            profile.createdAt,
-          ]
-        );
+      const [rows] = await connection.query(
+        'SELECT * FROM users WHERE (facebookId = ? AND googleId IS NULL) OR (facebookId IS NULL AND googleId = ?)',
+        [profile.facebookId, profile.googleId]
+      );
+
+      if (rows.length > 0) {
+        return rows[0];
+      } else {
+        if (profile.facebookId) {
+          await connection.query(
+            'INSERT INTO users (username, email, facebookId, verified, createdAt) VALUES (?, ?, ?, ?, ?)',
+            [
+              profile.displayName,
+              profile.emails[0].value,
+              profile.facebookId,
+              profile.verified,
+              profile.createdAt,
+            ]
+          );
+        }
+        if (profile.googleId) {
+          await connection.query(
+            'INSERT INTO users (username, email, googleId, verified, createdAt) VALUES (?, ?, ?, ?, ?)',
+            [
+              profile.displayName,
+              profile.emails[0].value,
+              profile.googleId,
+              profile.verified,
+              profile.createdAt,
+            ]
+          );
+        }
+        await connection.commit();
+        shouldCommit = true;
+        return { ...profile };
       }
-      if (profile.googleId) {
-        await connection.query(
-          'INSERT INTO users (username, email, googleId, verified, createdAt) VALUES (?, ?, ?, ?, ?)',
-          [
-            profile.displayName,
-            profile.emails[0].value,
-            profile.googleId,
-            profile.verified,
-            profile.createdAt,
-          ]
-        );
-      }
-      await connection.commit();
-      shouldCommit = true;
-      return { ...profile };
     }
   } catch (error) {
     if (!shouldCommit) {

@@ -303,9 +303,13 @@ const authSuccess = async (req, res) => {
   // Send refresh token as a cookie
   sendRefreshToken(res, refreshToken);
   res.cookie('accessToken', accessToken);
+
+  const email = req.user.email ? req.user.email : req.user.emails[0].value;
+  const user = await userModel.findByEmail(email);
+
   // Storing user activities
   await userModel.createUserActivity({
-    userId: req.user.id,
+    userId: user.id,
     action: 'login',
     timestamps: new Date(),
   });
