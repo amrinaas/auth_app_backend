@@ -25,4 +25,38 @@ const sendRefreshToken = (res, token) => {
   });
 };
 
-export { generateToken, sendRefreshToken };
+const sendTokens = (res, accessToken, refreshToken) => {
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    path: '/',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    path: '/',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+};
+
+const clearTokens = (res) => {
+  res.clearCookie('accessToken', {
+    httpOnly: true,
+    path: '/',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    expires: new Date(0),
+  });
+
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    path: '/',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    expires: new Date(0),
+  });
+};
+
+export { generateToken, sendRefreshToken, sendTokens, clearTokens };

@@ -3,7 +3,12 @@ import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import userModel from '../models/userModel.js';
 import { promisify } from 'util';
-import { generateToken, sendRefreshToken } from '../utils/tokenUtils.js';
+import {
+  generateToken,
+  sendTokens,
+  sendRefreshToken,
+  clearTokens,
+} from '../utils/tokenUtils.js';
 import jwt from 'jsonwebtoken';
 import passport from 'passport';
 
@@ -93,12 +98,13 @@ const resendVerificationEmail = async (req, res) => {
     };
     await userModel.updateToken({ email: user.email, token: token });
     await sendMail(mailOptions);
+    clearTokens(res);
     res.status(200).json({ message: 'Resend email successful' });
 
     console.log('Resend Email has been sent to: ', user.email);
     return 'Verification email sent!';
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error sending resend email:', error);
     res.status(500).json({ error: 'Failed to send verification email' });
   }
 };
@@ -140,8 +146,8 @@ const login = async (req, res) => {
     // Generate tokens
     const { accessToken, refreshToken } = generateToken(user);
 
-    // Send refresh token as a cookie
-    sendRefreshToken(res, refreshToken);
+    // Send both access and refresh token as a cookie
+    sendTokens(res, accessToken, refreshToken);
 
     // Storing user activities
     await userModel.createUserActivity({
@@ -216,13 +222,7 @@ const logout = async (req, res) => {
       action: 'logout',
       timestamps: new Date(),
     });
-
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      path: '/',
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'None',
-    });
+    clearTokens(res);
 
     res.status(200).json({ message: 'Logout successful' });
   } catch (error) {
@@ -301,8 +301,7 @@ const authSuccess = async (req, res) => {
   // Generate tokens
   const { accessToken, refreshToken } = generateToken(req.user);
   // Send refresh token as a cookie
-  sendRefreshToken(res, refreshToken);
-  res.cookie('accessToken', accessToken);
+  sendTokens(res, accessToken, refreshToken);
 
   const email = req.user.email ? req.user.email : req.user.emails[0].value;
   const user = await userModel.findByEmail(email);

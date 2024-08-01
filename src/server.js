@@ -11,9 +11,6 @@ const PORT = process.env.PORT || 5000;
 
 // MIDDLEWARES
 app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors({ credentials: true, origin: process.env.WEBSITE }));
 app.use(
   session({
     secret: process.env.SESSION_KEY,
@@ -21,6 +18,9 @@ app.use(
     saveUninitialized: true,
   })
 );
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors({ credentials: true, origin: true }));
 app.use(passport.initialize());
 app.use(passport.session());
 
