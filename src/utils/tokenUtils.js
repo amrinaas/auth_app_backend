@@ -27,7 +27,7 @@ const sendRefreshToken = (res, token) => {
 
 const sendTokens = (res, accessToken, refreshToken) => {
   res.cookie('accessToken', accessToken, {
-    httpOnly: true,
+    httpOnly: false,
     path: '/',
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
@@ -43,7 +43,7 @@ const sendTokens = (res, accessToken, refreshToken) => {
 
 const clearTokens = (res) => {
   res.clearCookie('accessToken', {
-    httpOnly: true,
+    httpOnly: false,
     path: '/',
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
