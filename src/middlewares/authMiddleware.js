@@ -1,4 +1,3 @@
-import { validationResult } from 'express-validator';
 import jwt from 'jsonwebtoken';
 
 export const authenticate = (req, res, next) => {
@@ -15,12 +14,4 @@ export const authenticate = (req, res, next) => {
     console.error('Error Authenticate', error);
     res.status(401).json({ error: error.message });
   }
-};
-
-export const validate = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  next();
 };
