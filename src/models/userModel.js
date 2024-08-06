@@ -151,7 +151,7 @@ const createUserActivity = async ({ userId, action, timestamps }) => {
       [userId, action, timestamps]
     );
   } catch (error) {
-    console.log('Error at createUserActivity', error);
+    console.error('Error at createUserActivity', error);
     throw new Error(error);
   } finally {
     connection.release();
