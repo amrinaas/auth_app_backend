@@ -150,11 +150,7 @@ const login = async (req, res) => {
     sendTokens(res, accessToken, refreshToken);
 
     // Storing user activities
-    await userModel.createUserActivity({
-      userId: user.id,
-      action: 'login',
-      timestamps: new Date(),
-    });
+    logUserActivity(user.id, 'login');
 
     res.status(200).json({ accessToken, message: 'Login successful' });
   } catch (error) {
@@ -211,24 +207,22 @@ const logout = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const user = await userModel.findById(id);
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    await userModel.createUserActivity({
-      userId: id,
-      action: 'logout',
-      timestamps: new Date(),
-    });
+    await userModel.logoutUser(id);
     clearTokens(res);
 
     res.status(200).json({ message: 'Logout successful' });
   } catch (error) {
-    console.log('error logout', error);
+    console.error('error logout', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+};
+
+const logUserActivity = async (id, action) => {
+  await userModel.createUserActivity({
+    userId: id,
+    action: action,
+    timestamps: new Date(),
+  });
 };
 
 const updateUserName = async (req, res) => {
@@ -307,11 +301,7 @@ const authSuccess = async (req, res) => {
   const user = await userModel.findByEmail(email);
 
   // Storing user activities
-  await userModel.createUserActivity({
-    userId: user.id,
-    action: 'login',
-    timestamps: new Date(),
-  });
+  logUserActivity(user.id, 'login');
   res.redirect(`${process.env.WEBSITE}/`);
 };
 
@@ -324,23 +314,13 @@ const googleAuthCallback = passport.authenticate('google', {
   session: false,
 });
 
-// const getActiveSessionsToday = async (req, res) => {
-//   try {
-//     const activeSessionsToday = await userModel.getActiveSessionsToday();
-//     res.json({ activeSessionsToday });
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// };
-
-// const getAverageActiveSessions = async (req, res) => {
-//   try {
-//     const averageActiveSessions = await userModel.getAverageActiveSessions();
-//     res.json({ averageActiveSessions });
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// };
+const checkAndUpdateSession = async (id, req, res, next) => {
+  try {
+    await userModel.checkAndUpdateSession(id, req, res, next);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 export default {
   register,
@@ -359,6 +339,5 @@ export default {
   authSuccess,
   googleAuth,
   googleAuthCallback,
-  // getActiveSessionsToday,
-  // getAverageActiveSessions,
+  checkAndUpdateSession,
 };

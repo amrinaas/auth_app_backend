@@ -1,6 +1,9 @@
 import express from 'express';
-import { userValidationRules } from '../middlewares/validator.js';
-import { validate, authenticate } from '../middlewares/authMiddleware.js';
+import { userValidationRules, validate } from '../middlewares/validator.js';
+import {
+  authenticate,
+  checkAndUpdateSession,
+} from '../middlewares/authMiddleware.js';
 import userController from '../controllers/userController.js';
 
 const router = express.Router();
@@ -37,8 +40,6 @@ router.get(
   userController.googleAuthCallback,
   userController.authSuccess
 );
-
-// router.get('/active-sessions-today', userController.getActiveSessionsToday);
-// router.get('/average-active-sessions', userController.getAverageActiveSessions);
+router.get('/check-session', checkAndUpdateSession);
 
 export default router;

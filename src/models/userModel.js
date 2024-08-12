@@ -151,10 +151,9 @@ const createUserActivity = async ({ userId, action, timestamps }) => {
       [userId, action, timestamps]
     );
   } catch (error) {
+    connection.rollback();
     console.error('Error at createUserActivity', error);
     throw new Error(error);
-  } finally {
-    connection.release();
   }
 };
 
@@ -246,27 +245,122 @@ const findOrCreateUser = async (profile) => {
   }
 };
 
-// const getActiveSessionsToday = async () => {
-//   const [rows] = await connection.query(`
-//     SELECT COUNT(DISTINCT id) AS activeSessionsToday
-//     FROM sessions
-//     WHERE DATE(last_activity) = CURDATE()
-//   `);
-//   return rows[0].activeSessionsToday;
-// };
+const checkAndUpdateSession = async (id, req, res, next) => {
+  const checkQuery = `SELECT id, session_start FROM sessions WHERE user_id = ? AND session_end IS NULL ORDER BY session_start DESC LIMIT 1`;
+  const today = new Date().toDateString();
 
-// const getAverageActiveSessions = async () => {
-//   const [rows] = await pool.query(`
-//     SELECT AVG(dailyActiveUsers) AS averageActiveSessions
-//     FROM (
-//       SELECT COUNT(DISTINCT user_id) AS dailyActiveUsers
-//       FROM sessions
-//       WHERE last_activity >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-//       GROUP BY DATE(last_activity)
-//     ) AS dailyStats
-//   `);
-//   return rows[0].averageActiveSessions;
-// };
+  try {
+    const [results] = await connection.query(checkQuery, [id]);
+
+    // Check if user has logged-in
+    if (results.length > 0) {
+      const lastSession = results[0];
+      const lastSessionDate = new Date(
+        lastSession.session_start
+      ).toDateString();
+
+      if (lastSessionDate !== today) {
+        // If user has logged in in the previous day but hasn't logged out yet
+        const endOfPreviousDaya = new Date(lastSession.session_start);
+        endOfPreviousDaya.setHours(23, 59, 59, 999);
+
+        // Update query for session_end for user who hasn't logout during the day
+        const updateQuery = `UPDATE sessions SET session_end = ? WHERE id = ?`;
+        connection.query(
+          updateQuery,
+          [endOfPreviousDaya, lastSession.id],
+          (err, updateResults) => {
+            if (err) throw err;
+
+            // Create new session in the new day
+            insertNewSession(id, new Date(), res, next);
+          }
+        );
+      } else {
+        // If the session is still on the same day, just continue with existing session
+        next();
+      }
+    } else {
+      // No active session found, insert a new session
+      insertNewSession(id, new Date(), res, next);
+    }
+  } catch (error) {
+    console.error('Error at checkAndUpdateSession', error);
+    throw new Error(error);
+  } finally {
+    connection.release();
+  }
+};
+
+const insertNewSession = async (user_id, session_start, res, next) => {
+  const insertQuery = `INSERT INTO sessions (user_id, session_start) VALUES (?,?)`;
+  try {
+    await connection.query(insertQuery, [user_id, session_start]);
+    next();
+  } catch (error) {
+    console.error('Error at insertNewSession', error);
+    throw new Error(error);
+  } finally {
+    connection.release();
+  }
+};
+
+const updateSession = async ({ userId, session_end }) => {
+  const checkQuery = `SELECT id, session_start FROM sessions WHERE user_id = ? AND session_end IS NULL ORDER BY session_start DESC LIMIT 1`;
+  const updateQuery = `UPDATE sessions SET session_end = ? WHERE id = ?`;
+
+  try {
+    const [results] = await connection.query(checkQuery, [userId]);
+
+    if (results.length === 0) {
+      throw new Error('No active session found');
+    }
+
+    const [updateResult] = await connection.query(updateQuery, [
+      session_end,
+      results[0].id,
+    ]);
+
+    if (updateResult.affectedRows === 0) {
+      throw new Error('Failed to update session');
+    }
+  } catch (error) {
+    connection.rollback();
+    console.error('Error at updateSession', error);
+    throw new Error(error);
+  }
+};
+
+const logoutUser = async (id) => {
+  try {
+    await connection.beginTransaction();
+
+    const user = await findById(id);
+    if (!user) {
+      await connection.rollback();
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    await createUserActivity({
+      userId: id,
+      action: 'logout',
+      timestamps: new Date(),
+    });
+
+    await updateSession({
+      userId: id,
+      session_end: new Date(),
+    });
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error during logoutUser transaction', error);
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
 
 export default {
   createUser,
@@ -283,6 +377,7 @@ export default {
   getTotalUsers,
   getUsersDashboard,
   findOrCreateUser,
-  // getActiveSessionsToday,
-  // getAverageActiveSessions,
+  checkAndUpdateSession,
+  updateSession,
+  logoutUser,
 };
