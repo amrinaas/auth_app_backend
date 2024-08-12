@@ -27,6 +27,8 @@ router.get(
 router.get('/details', authenticate, userController.getUserById);
 router.get('/total-users', userController.getTotalUsers);
 router.get('/users-dashboard', userController.getUsersDashboard);
+router.get('/active-session', userController.countActiveSession);
+router.get('/average-active-session', userController.countAverageSession);
 
 router.get('/auth/facebook', userController.facebookAuth);
 router.get(

@@ -322,6 +322,34 @@ const checkAndUpdateSession = async (id, req, res, next) => {
   }
 };
 
+const countActiveSession = async (req, res, next) => {
+  try {
+    const totalActiveSession = await userModel.countActiveSession();
+
+    res.status(200).json({
+      totalActiveSession: totalActiveSession,
+      message: 'Get active session in a day successfully',
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const countAverageSession = async (req, res, next) => {
+  try {
+    const averageSession = await userModel.countAverageSession();
+
+    res
+      .status(200)
+      .json({
+        averageSession: averageSession,
+        message: 'Get average session successfully',
+      });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export default {
   register,
   verifyEmail,
@@ -340,4 +368,6 @@ export default {
   googleAuth,
   googleAuthCallback,
   checkAndUpdateSession,
+  countActiveSession,
+  countAverageSession,
 };

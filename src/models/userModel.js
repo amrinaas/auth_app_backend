@@ -362,6 +362,22 @@ const logoutUser = async (id) => {
   }
 };
 
+const countActiveSession = async () => {
+  const [rows] = await connection.query(
+    'SELECT COUNT(DISTINCT user_id) AS active_users_today FROM sessions WHERE (session_end IS NULL OR DATE(session_end) >= CURDATE()) AND DATE(session_start) <= CURDATE()'
+  );
+
+  return rows[0].active_users_today;
+};
+
+const countAverageSession = async () => {
+  const [rows] = await connection.query(
+    'SELECT ROUND(AVG(daily_active_users)) AS avg_active_users_last_7_days FROM (SELECT DATE(session_start) AS session_date, COUNT(DISTINCT user_id) AS daily_active_users FROM sessions WHERE session_start >= CURDATE() - INTERVAL 7 DAY GROUP BY DATE(session_start)) AS daily_counts;'
+  );
+
+  return rows[0].avg_active_users_last_7_days;
+};
+
 export default {
   createUser,
   checkEmailExist,
@@ -380,4 +396,6 @@ export default {
   checkAndUpdateSession,
   updateSession,
   logoutUser,
+  countActiveSession,
+  countAverageSession,
 };
