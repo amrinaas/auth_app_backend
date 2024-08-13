@@ -277,8 +277,20 @@ const getTotalUsers = async (req, res) => {
 
 export const getUsersDashboard = async (req, res) => {
   try {
+    const page = parseInt(req.query.page);
+    const pageSize = parseInt(req.query.pageSize);
+
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = page * pageSize;
+
     const users = await userModel.getUsersDashboard();
-    res.status(200).json({ data: users, message: 'Success get all users' });
+    const paginated = users.slice(startIndex, endIndex);
+
+    const totalPages = Math.ceil(users.length / pageSize);
+
+    res
+      .status(200)
+      .json({ data: paginated, totalPages, message: 'Success get all users' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -339,12 +351,10 @@ const countAverageSession = async (req, res, next) => {
   try {
     const averageSession = await userModel.countAverageSession();
 
-    res
-      .status(200)
-      .json({
-        averageSession: averageSession,
-        message: 'Get average session successfully',
-      });
+    res.status(200).json({
+      averageSession: averageSession,
+      message: 'Get average session successfully',
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
