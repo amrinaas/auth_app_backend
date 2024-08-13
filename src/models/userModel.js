@@ -364,7 +364,7 @@ const logoutUser = async (id) => {
 
 const countActiveSession = async () => {
   const [rows] = await connection.query(
-    'SELECT COUNT(DISTINCT user_id) AS active_users_today FROM sessions WHERE (session_end IS NULL OR DATE(session_end) >= CURDATE()) AND DATE(session_start) <= CURDATE()'
+    'SELECT COUNT(DISTINCT user_id) AS active_users_today FROM sessions WHERE (session_end IS NULL OR DATE(session_end) >= CURDATE()) AND DATE(session_start) >= CURDATE()'
   );
 
   return rows[0].active_users_today;
