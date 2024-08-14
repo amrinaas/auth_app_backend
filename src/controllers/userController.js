@@ -22,6 +22,7 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const token = crypto.randomBytes(32).toString('hex');
     const verified = false;
+    const isOAuth = false;
     const createdAt = new Date();
 
     await userModel.createUser(
@@ -30,7 +31,8 @@ const register = async (req, res) => {
       hashedPassword,
       token,
       verified,
-      createdAt
+      createdAt,
+      isOAuth
     );
 
     await sendVerificationEmail(email, token);
@@ -152,6 +154,8 @@ const login = async (req, res) => {
     // Storing user activities
     logUserActivity(user.id, 'login');
 
+    // Set session end is null
+    userModel.updateSessionLogin({ userId: user.id });
     res.status(200).json({ accessToken, message: 'Login successful' });
   } catch (error) {
     console.error('Error in login:', error);
@@ -195,6 +199,7 @@ const getUserById = async (req, res) => {
         email: user.email,
         username: user.username,
         verified: user.verified,
+        isOAuth: user.isOAuth,
       },
     });
   } catch (error) {
@@ -243,6 +248,8 @@ const updateUserName = async (req, res) => {
 const updatePassword = async (req, res) => {
   const { id } = req.params;
   const { oldPassword, newPassword, reEnterNewPassword } = req.body;
+  console.log(req.body);
+  console.log(reEnterNewPassword);
 
   if (newPassword !== reEnterNewPassword)
     return res.status(400).json({ message: "New password doesn't match" });
@@ -252,15 +259,24 @@ const updatePassword = async (req, res) => {
 
     if (!user) return res.status(400).json({ message: 'User not found' });
 
-    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (user.isOAuth) {
+      await userModel.setPassword({
+        id: id,
+        newPassword: newPassword,
+        isOAuth: false,
+      });
+    } else {
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
 
-    if (!isMatch)
-      return res.status(400).json({ message: 'Old password is incorrect' });
+      if (!isMatch)
+        return res.status(400).json({ message: 'Old password is incorrect' });
 
-    await userModel.updatePassword(id, newPassword);
+      await userModel.updatePassword(id, newPassword);
+    }
     res.status(200).json({ message: 'Password updated successfully' });
   } catch (error) {
     console.error('Error update password', error);
+    res.status(500).json({ error: error.message });
   }
 };
 

@@ -19,7 +19,7 @@ router.get('/refresh-token', userController.refreshToken);
 router.post('/login', userController.login);
 router.delete('/logout/:id', userController.logout);
 router.put('/', userController.updateUserName);
-router.put('/:id/password', userController.updatePassword);
+router.put('/password/:id', userController.updatePassword);
 router.get(
   '/resend-email-verification/:id',
   userController.resendVerificationEmail

@@ -19,6 +19,7 @@ passport.use(
           emails: profile.emails,
           createdAt: new Date(),
           verified: true,
+          isOAuth: true,
         });
         done(null, user);
       } catch (error) {
@@ -46,6 +47,7 @@ passport.use(
           emails: profile.emails,
           createdAt: new Date(),
           verified: true,
+          isOAuth: true,
         });
         done(null, user);
       } catch (error) {

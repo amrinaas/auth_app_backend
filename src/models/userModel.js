@@ -9,13 +9,14 @@ const createUser = async (
   password,
   token,
   verified,
-  createdAt
+  createdAt,
+  isOAuth
 ) => {
   let shouldCommit = false;
   try {
     await connection.query(
-      'INSERT INTO users (username, email, password, token, verified, createdAt) VALUES (?, ?, ?, ?, ?, ?)',
-      [username, email, password, token, verified, createdAt]
+      'INSERT INTO users (username, email, password, token, verified, createdAt, isOAuth) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [username, email, password, token, verified, createdAt, isOAuth]
     );
 
     await connection.commit();
@@ -32,7 +33,7 @@ const createUser = async (
 };
 
 const checkEmailExist = async (email) => {
-  const [rows] = await dbPool.query('SELECT * FROM users WHERE email = ?', [
+  const [rows] = await connection.query('SELECT * FROM users WHERE email = ?', [
     email,
   ]);
 
@@ -58,7 +59,7 @@ const findUserByToken = async (token) => {
 const updateUserByToken = async (updates) => {
   const { verified, token } = updates;
 
-  await dbPool.query(
+  await connection.query(
     'UPDATE users SET verified = ?, token = ? WHERE token = ?',
     [verified, null, token]
   );
@@ -67,7 +68,7 @@ const updateUserByToken = async (updates) => {
 const updateToken = async (updates) => {
   const { email, token } = updates;
 
-  await dbPool.query('UPDATE users SET token = ? WHERE email = ?', [
+  await connection.query('UPDATE users SET token = ? WHERE email = ?', [
     token,
     email,
   ]);
@@ -144,6 +145,21 @@ const updatePassword = async (id, newPassword) => {
   }
 };
 
+const setPassword = async ({ id, newPassword, isOAuth }) => {
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  try {
+    await connection.query(
+      'UPDATE users SET password = ?, isOAuth = ? WHERE id = ?',
+      [hashedPassword, isOAuth, id]
+    );
+  } catch (err) {
+    console.error('Error in update password:', err);
+    throw new Error(err);
+  } finally {
+    connection.release();
+  }
+};
+
 const createUserActivity = async ({ userId, action, timestamps }) => {
   try {
     await connection.query(
@@ -166,7 +182,7 @@ const getTotalUsers = async () => {
 
 const getUsersDashboard = async () => {
   try {
-    const [rows] = await dbPool.query(`
+    const [rows] = await connection.query(`
       SELECT 
           u.email,
           u.username,
@@ -197,6 +213,7 @@ const findOrCreateUser = async (profile) => {
     if (emailExist.length > 0) {
       return emailExist[0];
     } else {
+      // Check if user exist using facebook or google
       const [rows] = await connection.query(
         'SELECT * FROM users WHERE (facebookId = ? AND googleId IS NULL) OR (facebookId IS NULL AND googleId = ?)',
         [profile.facebookId, profile.googleId]
@@ -205,27 +222,31 @@ const findOrCreateUser = async (profile) => {
       if (rows.length > 0) {
         return rows[0];
       } else {
+        // Register using facebook
         if (profile.facebookId) {
           await connection.query(
-            'INSERT INTO users (username, email, facebookId, verified, createdAt) VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO users (username, email, facebookId, verified, createdAt, isOAuth) VALUES (?, ?, ?, ?, ?, ?)',
             [
               profile.displayName,
               profile.emails[0].value,
               profile.facebookId,
               profile.verified,
               profile.createdAt,
+              profile.isOAuth,
             ]
           );
         }
+        // Register using google
         if (profile.googleId) {
           await connection.query(
-            'INSERT INTO users (username, email, googleId, verified, createdAt) VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO users (username, email, googleId, verified, createdAt, isOAuth) VALUES (?, ?, ?, ?, ?, ?)',
             [
               profile.displayName,
               profile.emails[0].value,
               profile.googleId,
               profile.verified,
               profile.createdAt,
+              profile.isOAuth,
             ]
           );
         }
@@ -265,7 +286,7 @@ const checkAndUpdateSession = async (id, req, res, next) => {
         endOfPreviousDaya.setHours(23, 59, 59, 999);
 
         // Update query for session_end for user who hasn't logout during the day
-        const updateQuery = `UPDATE sessions SET session_end = ? WHERE id = ?`;
+        const updateQuery = 'UPDATE sessions SET session_end = ? WHERE id = ?';
         connection.query(
           updateQuery,
           [endOfPreviousDaya, lastSession.id],
@@ -305,19 +326,37 @@ const insertNewSession = async (user_id, session_start, res, next) => {
   }
 };
 
-const updateSession = async ({ userId, session_end }) => {
+const updateSessionEnd = async ({ userId, session_end }) => {
   const checkQuery = `SELECT id, session_start FROM sessions WHERE user_id = ? AND session_end IS NULL ORDER BY session_start DESC LIMIT 1`;
-  const updateQuery = `UPDATE sessions SET session_end = ? WHERE id = ?`;
+  const updateQuery = 'UPDATE sessions SET session_end = ? WHERE id = ?';
 
   try {
     const [results] = await connection.query(checkQuery, [userId]);
 
-    if (results.length === 0) {
-      throw new Error('No active session found');
-    }
-
     const [updateResult] = await connection.query(updateQuery, [
       session_end,
+      results[0].id,
+    ]);
+
+    if (updateResult.affectedRows === 0) {
+      throw new Error('Failed to update session');
+    }
+  } catch (error) {
+    connection.rollback();
+    console.error('Error at updateSession', error);
+    throw new Error(error);
+  }
+};
+
+const updateSessionLogin = async ({ userId }) => {
+  const checkQuery = `SELECT id, session_start, session_end FROM sessions WHERE user_id = ? ORDER BY session_start DESC LIMIT 1`;
+  const updateQuery = 'UPDATE sessions SET session_end = ? WHERE id = ?';
+
+  try {
+    const [results] = await connection.query(checkQuery, [userId]);
+
+    const [updateResult] = await connection.query(updateQuery, [
+      null,
       results[0].id,
     ]);
 
@@ -347,7 +386,7 @@ const logoutUser = async (id) => {
       timestamps: new Date(),
     });
 
-    await updateSession({
+    await updateSessionEnd({
       userId: id,
       session_end: new Date(),
     });
@@ -394,8 +433,9 @@ export default {
   getUsersDashboard,
   findOrCreateUser,
   checkAndUpdateSession,
-  updateSession,
   logoutUser,
   countActiveSession,
   countAverageSession,
+  updateSessionLogin,
+  setPassword,
 };
