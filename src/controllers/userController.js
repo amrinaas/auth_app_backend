@@ -248,8 +248,6 @@ const updateUserName = async (req, res) => {
 const updatePassword = async (req, res) => {
   const { id } = req.params;
   const { oldPassword, newPassword, reEnterNewPassword } = req.body;
-  console.log(req.body);
-  console.log(reEnterNewPassword);
 
   if (newPassword !== reEnterNewPassword)
     return res.status(400).json({ message: "New password doesn't match" });
