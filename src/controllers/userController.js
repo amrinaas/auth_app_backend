@@ -117,20 +117,20 @@ const verifyEmail = async (req, res) => {
     const user = await userModel.findUserByToken(token);
 
     if (!user) {
-      res.redirect('http://localhost:3000/invalid-token');
+      res.redirect(`${process.env.WEBSITE}/invalid-token`);
       return;
     }
 
     await userModel.updateUserByToken({ verified: true, token: token });
 
-    res.redirect('http://localhost:3000/');
+    res.redirect(`${process.env.WEBSITE}`);
   } catch (error) {
     console.error('error', error);
     res.status(500).json({ message: 'Error verifying email.' });
   }
 };
 
-const login = async (req, res) => {
+const login = async (req, res, next) => {
   const { email, password } = req.body;
 
   try {
@@ -155,7 +155,7 @@ const login = async (req, res) => {
     logUserActivity(user.id, 'login');
 
     // Set session end is null
-    userModel.updateSessionLogin({ userId: user.id });
+    userModel.updateSessionLogin(user.id, next);
     res.status(200).json({ accessToken, message: 'Login successful' });
   } catch (error) {
     console.error('Error in login:', error);

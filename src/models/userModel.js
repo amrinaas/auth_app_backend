@@ -348,20 +348,25 @@ const updateSessionEnd = async ({ userId, session_end }) => {
   }
 };
 
-const updateSessionLogin = async ({ userId }) => {
+const updateSessionLogin = async (userId, next) => {
   const checkQuery = `SELECT id, session_start, session_end FROM sessions WHERE user_id = ? ORDER BY session_start DESC LIMIT 1`;
   const updateQuery = 'UPDATE sessions SET session_end = ? WHERE id = ?';
 
   try {
     const [results] = await connection.query(checkQuery, [userId]);
 
-    const [updateResult] = await connection.query(updateQuery, [
-      null,
-      results[0].id,
-    ]);
+    // User very first login
+    if (results.length === 0) {
+      next();
+    } else {
+      const [updateResult] = await connection.query(updateQuery, [
+        null,
+        results[0].id,
+      ]);
 
-    if (updateResult.affectedRows === 0) {
-      throw new Error('Failed to update session');
+      if (updateResult.affectedRows === 0) {
+        throw new Error('Failed to update session');
+      }
     }
   } catch (error) {
     connection.rollback();
