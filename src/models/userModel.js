@@ -282,34 +282,29 @@ const checkAndUpdateSession = async (id, req, res, next) => {
 
       if (lastSessionDate !== today) {
         // If user has logged in in the previous day but hasn't logged out yet
-        const endOfPreviousDaya = new Date(lastSession.session_start);
-        endOfPreviousDaya.setHours(23, 59, 59, 999);
+        const endOfPreviousDay = new Date(lastSession.session_start);
+        endOfPreviousDay.setHours(23, 59, 59, 999);
 
         // Update query for session_end for user who hasn't logout during the day
         const updateQuery = 'UPDATE sessions SET session_end = ? WHERE id = ?';
-        connection.query(
-          updateQuery,
-          [endOfPreviousDaya, lastSession.id],
-          (err, updateResults) => {
-            if (err) throw err;
+        await connection.query(updateQuery, [endOfPreviousDay, lastSession.id]);
+        console.log('Session updated, creating new session');
 
-            // Create new session in the new day
-            insertNewSession(id, new Date(), res, next);
-          }
-        );
+        // Create new session in the new day
+        await insertNewSession(id, new Date(), res, next);
       } else {
         // If the session is still on the same day, just continue with existing session
         next();
       }
     } else {
       // No active session found, insert a new session
-      insertNewSession(id, new Date(), res, next);
+      await insertNewSession(id, new Date(), res, next);
     }
   } catch (error) {
     console.error('Error at checkAndUpdateSession', error);
     throw new Error(error);
   } finally {
-    connection.release();
+    if (connection) connection.release();
   }
 };
 
@@ -322,7 +317,7 @@ const insertNewSession = async (user_id, session_start, res, next) => {
     console.error('Error at insertNewSession', error);
     throw new Error(error);
   } finally {
-    connection.release();
+    if (connection) connection.release();
   }
 };
 
