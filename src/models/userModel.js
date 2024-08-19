@@ -80,12 +80,13 @@ const findByEmail = async (email) => {
       'SELECT * FROM users WHERE email = ?',
       [email]
     );
-    connection.release();
 
     return results[0];
   } catch (err) {
     console.error('Error in findByEmail:', err);
     throw new Error(err);
+  } finally {
+    if (connection) connection.release();
   }
 };
 
