@@ -1,8 +1,7 @@
-[build]
-command = "npm start"
-publish = "src"
+[functions]
+directory = "functions"
 
 [[redirects]]
-from = "/*"
-to = "/.netlify/functions/api"
+from = "/api/*"
+to = "/.netlify/functions/api/:splat"
 status = 200

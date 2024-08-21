@@ -3,10 +3,10 @@ import serverless from 'serverless-http';
 import 'dotenv/config';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import passport from './config/passport.js';
+import passport from '../src/config/passport.js';
 import session from 'express-session';
-import userRoutes from './routes/userRoutes.js';
-import router from './routes/userRoutes.js';
+import userRoutes from '../src/routes/userRoutes.js';
+import router from '../src/routes/userRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
