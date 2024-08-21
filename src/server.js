@@ -1,10 +1,12 @@
 import express from 'express';
+import serverless from 'serverless-http';
 import 'dotenv/config';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import passport from './config/passport.js';
 import session from 'express-session';
 import userRoutes from './routes/userRoutes.js';
+import router from './routes/userRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,7 +22,13 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors({ credentials: true, origin: true }));
+app.use(
+  cors({
+    credentials: true,
+    origin: process.env.WEBSITE,
+    optionsSuccessStatus: 200,
+  })
+);
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -32,7 +40,15 @@ app.get('/', (req, res) =>
   })
 );
 
-// START SERVER
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Use the correct path for Netlify functions
+app.use('/.netlify/functions/api', userRoutes);
+
+// Export the serverless handler
+export const handler = serverless(app);
+
+// START SERVER (for local development)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
