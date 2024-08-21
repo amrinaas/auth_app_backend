@@ -6,7 +6,7 @@
   "author": "Amrina Aulia Siregar",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon functions/api.js",
+    "start": "nodemon functions/api.mjs",
     "build": "echo 'No build step required'"
   },
   "type": "module",
