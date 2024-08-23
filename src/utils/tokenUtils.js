@@ -20,9 +20,8 @@ const sendRefreshToken = (res, token) => {
   res.cookie('refreshToken', token, {
     httpOnly: true,
     path: '/',
-    secure: true,
-    sameSite: 'None',
-    domain: process.env.DOMAIN,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
   });
 };
 
@@ -30,17 +29,15 @@ const sendTokens = (res, accessToken, refreshToken) => {
   res.cookie('accessToken', accessToken, {
     httpOnly: false,
     path: '/',
-    secure: true,
-    sameSite: 'None',
-    domain: process.env.DOMAIN,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
   });
 
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     path: '/',
-    secure: true,
-    sameSite: 'None',
-    domain: process.env.DOMAIN,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
   });
 };
 
@@ -48,19 +45,17 @@ const clearTokens = (res) => {
   res.clearCookie('accessToken', {
     httpOnly: false,
     path: '/',
-    secure: true,
-    sameSite: 'None',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
     expires: new Date(0),
-    domain: process.env.DOMAIN,
   });
 
   res.clearCookie('refreshToken', {
     httpOnly: true,
     path: '/',
-    secure: true,
-    sameSite: 'None',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
     expires: new Date(0),
-    domain: process.env.DOMAIN,
   });
 };
 
