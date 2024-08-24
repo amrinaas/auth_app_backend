@@ -35,7 +35,7 @@ passport.use(
     {
       clientID: process.env.FACEBOOK_CLIENT_ID,
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
-      callbackURL: '/user/auth/facebook/callback',
+      callbackURL: `${process.env.SERVER}/user/auth/facebook/callback`,
       profileFields: ['id', 'displayName', 'emails'],
     },
     async (accessToken, refreshToken, profile, done) => {
@@ -51,6 +51,7 @@ passport.use(
         });
         done(null, user);
       } catch (error) {
+        console.error('error fb login', error);
         done(error, null);
       }
     }
